@@ -807,14 +807,15 @@ function showVoiceEstimateInput() {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'voice-estimate-modal';
-    // 画面上部に完全固定
+    // 画面上部に完全固定（アドレスバーを避ける）
     modal.style.cssText = `
       position: fixed !important;
-      top: 0 !important;
+      top: env(safe-area-inset-top, 0px) !important;
       left: 0 !important;
       right: 0 !important;
       z-index: 99999 !important;
-      padding: 10px;
+      padding: 12px;
+      padding-top: calc(12px + env(safe-area-inset-top, 0px));
       background: linear-gradient(135deg, #001520, #002530);
       border-bottom: 2px solid #00d4ff;
       box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
@@ -850,7 +851,7 @@ function showVoiceEstimateInput() {
   modal.style.display = 'block';
   
   // bodyにパディングを追加（ポップアップの高さ分）
-  document.body.style.paddingTop = '110px';
+  document.body.style.paddingTop = '120px';
   
   // テキストエリアにフォーカス（キーボードを出す）
   setTimeout(() => {
