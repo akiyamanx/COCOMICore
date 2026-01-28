@@ -801,35 +801,36 @@ function executeExpenseVoiceCommand(command) {
 // 見積書作成 音声コマンド（テキスト入力方式）
 // ==========================================
 
-// 見積書用テキスト入力ポップアップを表示（画面上部に固定）
+// 見積書用テキスト入力ポップアップを表示（画面上部に完全固定）
 function showVoiceEstimateInput() {
   let modal = document.getElementById('voice-estimate-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'voice-estimate-modal';
-    // 画面上部に固定、背景はスクロール可能
+    // 画面上部に完全固定
     modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 9999;
-      padding: 8px;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 99999 !important;
+      padding: 10px;
       background: linear-gradient(135deg, #001520, #002530);
       border-bottom: 2px solid #00d4ff;
       box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+      transform: translateZ(0);
     `;
     modal.innerHTML = `
       <!-- タイトル行 -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <div style="font-size: 14px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
-        <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: bold; cursor: pointer;">✕</button>
+        <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">✕ 閉じる</button>
       </div>
       
       <!-- 入力欄とボタン -->
       <div style="display: flex; gap: 8px; align-items: stretch;">
-        <textarea id="voiceEstimateText" placeholder="キーボードの🎤で入力 例：山田様、トイレ交換、便器5万円、作業費2万円" style="flex: 1; height: 50px; padding: 8px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 14px; resize: none; color: #1f2937;"></textarea>
-        <button onclick="submitVoiceEstimate()" style="padding: 8px 16px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); white-space: nowrap;">
+        <textarea id="voiceEstimateText" placeholder="🎤 例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="flex: 1; height: 60px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937;"></textarea>
+        <button onclick="submitVoiceEstimate()" style="padding: 10px 16px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); white-space: nowrap;">
           ✨ 送信
         </button>
       </div>
@@ -849,7 +850,7 @@ function showVoiceEstimateInput() {
   modal.style.display = 'block';
   
   // bodyにパディングを追加（ポップアップの高さ分）
-  document.body.style.paddingTop = '100px';
+  document.body.style.paddingTop = '110px';
   
   // テキストエリアにフォーカス（キーボードを出す）
   setTimeout(() => {
@@ -920,7 +921,9 @@ async function processVoiceEstimate(transcript, apiKey) {
 【重要ルール】
 1. 金額が複数言及されている場合は、必ずitemsに分けて入れる
 2. 「〇〇代」「〇〇費」「〇〇料」などは全て別々の品目としてitemsに入れる
-3. amountは全ての品目の合計金額
+3. amountは全ての品目の合計金額（単価×数量の合計）
+4. 「〇個」「〇台」「〇枚」「〇本」「〇セット」などの数量表現を認識してquantityに入れる
+5. 数量が明示されていない場合はquantity: 1とする
 
 以下のJSON形式で返してください（説明不要）:
 {
@@ -936,13 +939,18 @@ async function processVoiceEstimate(transcript, apiKey) {
 音声「山田工務店さん、トイレ交換、15万円」
 → {"customerName": "山田工務店", "title": "トイレ交換", "amount": 150000, "items": [{"name": "トイレ交換工事", "quantity": 1, "price": 150000}]}
 
-【例2】複数金額の場合（重要！）
+【例2】複数金額の場合
 音声「田中様、キッチン水栓交換、部品代8000円、工賃1万円」
 → {"customerName": "田中様", "title": "キッチン水栓交換", "amount": 18000, "items": [{"name": "部品代", "quantity": 1, "price": 8000}, {"name": "工賃", "quantity": 1, "price": 10000}]}
 
-【例3】材料・作業・諸経費の場合
-音声「佐藤様、便器交換、便器5万円、作業費2万円、諸経費3千円」
-→ {"customerName": "佐藤様", "title": "便器交換", "amount": 73000, "items": [{"name": "便器", "quantity": 1, "price": 50000}, {"name": "作業費", "quantity": 1, "price": 20000}, {"name": "諸経費", "quantity": 1, "price": 3000}]}
+【例3】数量がある場合（重要！）
+音声「佐藤様、蛇口交換、蛇口5000円を2個、作業費1万円」
+→ {"customerName": "佐藤様", "title": "蛇口交換", "amount": 20000, "items": [{"name": "蛇口", "quantity": 2, "price": 5000}, {"name": "作業費", "quantity": 1, "price": 10000}]}
+
+【例4】数量の表現パターン
+- 「2個」「2台」「2枚」「2本」「2セット」→ quantity: 2
+- 「3つ」「3か所」→ quantity: 3
+- 「便器5万円×2」「便器5万円が2つ」→ quantity: 2
 
 抽出できない項目はnullにしてください。`;
 
