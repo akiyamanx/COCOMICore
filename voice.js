@@ -801,71 +801,84 @@ function executeExpenseVoiceCommand(command) {
 // 見積書作成 音声コマンド（テキスト入力方式）
 // ==========================================
 
-// 見積書用テキスト入力ポップアップを表示（画面上部に完全固定）
+// 見積書用テキスト入力欄を表示（見積書画面に埋め込み）
 function showVoiceEstimateInput() {
-  let modal = document.getElementById('voice-estimate-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'voice-estimate-modal';
-    // 画面上部に完全固定（アドレスバーを避ける）
-    modal.style.cssText = `
-      position: fixed !important;
-      top: env(safe-area-inset-top, 0px) !important;
-      left: 0 !important;
-      right: 0 !important;
-      z-index: 99999 !important;
-      padding: 12px;
-      padding-top: calc(12px + env(safe-area-inset-top, 0px));
-      background: linear-gradient(135deg, #001520, #002530);
-      border-bottom: 2px solid #00d4ff;
-      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
-      transform: translateZ(0);
-    `;
-    modal.innerHTML = `
-      <!-- タイトル行 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <div style="font-size: 14px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
-        <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">✕ 閉じる</button>
-      </div>
-      
-      <!-- 入力欄とボタン -->
-      <div style="display: flex; gap: 8px; align-items: stretch;">
-        <textarea id="voiceEstimateText" placeholder="🎤 例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="flex: 1; height: 60px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937;"></textarea>
-        <button onclick="submitVoiceEstimate()" style="padding: 10px 16px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); white-space: nowrap;">
-          ✨ 送信
-        </button>
-      </div>
-      
-      <!-- ステータス表示 -->
-      <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 6px; color: #00d4ff; display: none; text-align: center;"></div>
-    `;
-    document.body.appendChild(modal);
-  }
-  
   // 見積書画面に移動
   showScreen('estimate');
   
-  // リセット
-  document.getElementById('voiceEstimateText').value = '';
-  document.getElementById('voiceEstimateStatus').style.display = 'none';
-  modal.style.display = 'block';
+  // 既存の入力欄があれば表示するだけ
+  let inputArea = document.getElementById('voice-estimate-input-area');
+  if (inputArea) {
+    inputArea.style.display = 'block';
+    document.getElementById('voiceEstimateText').value = '';
+    document.getElementById('voiceEstimateStatus').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('voiceEstimateText').focus();
+    }, 300);
+    return;
+  }
   
-  // bodyにパディングを追加（ポップアップの高さ分）
-  document.body.style.paddingTop = '120px';
+  // 見積書画面のコンテンツ部分を取得
+  const estimateScreen = document.getElementById('estimate-screen');
+  if (!estimateScreen) return;
   
-  // テキストエリアにフォーカス（キーボードを出す）
+  // 入力欄を作成
+  inputArea = document.createElement('div');
+  inputArea.id = 'voice-estimate-input-area';
+  inputArea.style.cssText = `
+    background: linear-gradient(135deg, #001520, #002530);
+    border: 2px solid #00d4ff;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+  `;
+  inputArea.innerHTML = `
+    <!-- タイトル行 -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="font-size: 15px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
+      <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;">✕ 閉じる</button>
+    </div>
+    
+    <!-- 入力欄 -->
+    <textarea id="voiceEstimateText" placeholder="🎤 キーボードのマイクで入力&#10;例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="width: 100%; height: 70px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937; box-sizing: border-box; overflow-y: auto;"></textarea>
+    
+    <!-- ボタン -->
+    <div style="display: flex; gap: 8px; margin-top: 10px;">
+      <button onclick="submitVoiceEstimate()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);">
+        ✨ AIに送信
+      </button>
+    </div>
+    
+    <!-- ステータス表示 -->
+    <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 8px; color: #00d4ff; display: none; text-align: center;"></div>
+  `;
+  
+  // 見積書画面の最初に挿入
+  const firstChild = estimateScreen.querySelector('.screen-content');
+  if (firstChild) {
+    firstChild.insertBefore(inputArea, firstChild.firstChild);
+  } else {
+    estimateScreen.insertBefore(inputArea, estimateScreen.firstChild);
+  }
+  
+  // フォーカス
   setTimeout(() => {
     document.getElementById('voiceEstimateText').focus();
   }, 300);
 }
 
-// 見積書用ポップアップを閉じる
+// 見積書用入力欄を閉じる
 function hideVoiceEstimateInput() {
-  const modal = document.getElementById('voice-estimate-modal');
-  if (modal) {
-    modal.style.display = 'none';
+  const inputArea = document.getElementById('voice-estimate-input-area');
+  if (inputArea) {
+    inputArea.style.display = 'none';
   }
-  // bodyのパディングを戻す
+  // 古いモーダルも閉じる（互換性のため）
+  const oldModal = document.getElementById('voice-estimate-modal');
+  if (oldModal) {
+    oldModal.style.display = 'none';
+  }
   document.body.style.paddingTop = '0';
 }
 
