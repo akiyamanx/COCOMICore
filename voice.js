@@ -801,61 +801,55 @@ function executeExpenseVoiceCommand(command) {
 // 見積書作成 音声コマンド（テキスト入力方式）
 // ==========================================
 
-// 見積書用テキスト入力ポップアップを表示
+// 見積書用テキスト入力ポップアップを表示（画面上部に固定）
 function showVoiceEstimateInput() {
   let modal = document.getElementById('voice-estimate-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'voice-estimate-modal';
-    modal.className = 'ocr-loading';
+    // 画面上部に固定、背景はスクロール可能
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      padding: 8px;
+      background: linear-gradient(135deg, #001520, #002530);
+      border-bottom: 2px solid #00d4ff;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    `;
     modal.innerHTML = `
-      <div style="background: linear-gradient(135deg, #001520, #002530); border: 2px solid #00d4ff; border-radius: 20px; padding: 24px; text-align: center; max-width: 360px; box-shadow: 0 0 30px rgba(0, 212, 255, 0.3); margin: 16px;">
-        
-        <!-- タイトル -->
-        <div style="font-size: 18px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); margin-bottom: 16px;">🎤 音声で見積書作成</div>
-        
-        <!-- チェックリスト -->
-        <div style="text-align: left; background: rgba(0, 212, 255, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 12px;">
-          <div style="font-weight: bold; margin-bottom: 6px; color: #00d4ff; font-size: 12px;">📋 入力する内容：</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: #a0e0f0;">
-            <div>☐ 顧客名（〇〇様）</div>
-            <div>☐ 件名（〇〇工事）</div>
-            <div>☐ 材料・商品名</div>
-            <div>☐ 作業費</div>
-            <div>☐ 諸経費</div>
-            <div>☐ 金額</div>
-          </div>
-        </div>
-        
-        <!-- 入力説明 -->
-        <div style="font-size: 12px; color: #a0e0f0; margin-bottom: 8px; text-align: left;">
-          📱 キーボードの<span style="color: #00d4ff; font-weight: bold;">🎤マイクボタン</span>で入力してください
-        </div>
-        
-        <!-- テキスト入力欄 -->
-        <textarea id="voiceEstimateText" placeholder="例：山田様、トイレ交換、便器5万円、作業費2万円、諸経費3千円" style="width: 100%; height: 120px; padding: 12px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 12px; background: rgba(255,255,255,0.95); font-size: 16px; resize: none; box-sizing: border-box; color: #1f2937;"></textarea>
-        
-        <!-- ステータス表示 -->
-        <div id="voiceEstimateStatus" style="font-size: 14px; margin: 12px 0; color: #00d4ff; display: none;"></div>
-        
-        <!-- ボタン群 -->
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <button onclick="submitVoiceEstimate()" style="flex: 2; padding: 14px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);">
-            ✨ AIに送信
-          </button>
-          <button onclick="hideVoiceEstimateInput()" style="flex: 1; padding: 14px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">
-            ✕ 閉じる
-          </button>
-        </div>
+      <!-- タイトル行 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 14px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
+        <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: bold; cursor: pointer;">✕</button>
       </div>
+      
+      <!-- 入力欄とボタン -->
+      <div style="display: flex; gap: 8px; align-items: stretch;">
+        <textarea id="voiceEstimateText" placeholder="キーボードの🎤で入力 例：山田様、トイレ交換、便器5万円、作業費2万円" style="flex: 1; height: 50px; padding: 8px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 14px; resize: none; color: #1f2937;"></textarea>
+        <button onclick="submitVoiceEstimate()" style="padding: 8px 16px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); white-space: nowrap;">
+          ✨ 送信
+        </button>
+      </div>
+      
+      <!-- ステータス表示 -->
+      <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 6px; color: #00d4ff; display: none; text-align: center;"></div>
     `;
     document.body.appendChild(modal);
   }
   
+  // 見積書画面に移動
+  showScreen('estimate');
+  
   // リセット
   document.getElementById('voiceEstimateText').value = '';
   document.getElementById('voiceEstimateStatus').style.display = 'none';
-  modal.classList.remove('hidden');
+  modal.style.display = 'block';
+  
+  // bodyにパディングを追加（ポップアップの高さ分）
+  document.body.style.paddingTop = '100px';
   
   // テキストエリアにフォーカス（キーボードを出す）
   setTimeout(() => {
@@ -867,8 +861,10 @@ function showVoiceEstimateInput() {
 function hideVoiceEstimateInput() {
   const modal = document.getElementById('voice-estimate-modal');
   if (modal) {
-    modal.classList.add('hidden');
+    modal.style.display = 'none';
   }
+  // bodyのパディングを戻す
+  document.body.style.paddingTop = '0';
 }
 
 // 見積書用テキストをAIに送信
@@ -1038,7 +1034,9 @@ function applyVoiceEstimate(data) {
             name: item.name,
             quantity: item.quantity || 1,
             unit: '式',
-            price: item.price,
+            costPrice: 0,  // 仕入単価（音声では不明なので0）
+            profitRate: 0, // 利益率（音声では不明なので0）
+            sellingPrice: item.price,  // 売値単価 ← これが重要！
             subtotal: (item.quantity || 1) * item.price
           });
         }
@@ -1051,7 +1049,9 @@ function applyVoiceEstimate(data) {
           name: data.title || '工事一式',
           quantity: 1,
           unit: '式',
-          price: data.amount,
+          costPrice: 0,
+          profitRate: 0,
+          sellingPrice: data.amount,
           subtotal: data.amount
         });
       }
@@ -1065,7 +1065,9 @@ function applyVoiceEstimate(data) {
         name: data.title || '工事一式',
         quantity: 1,
         unit: '式',
-        price: data.amount,
+        costPrice: 0,
+        profitRate: 0,
+        sellingPrice: data.amount,
         subtotal: data.amount
       }];
       renderEstimateMaterials();
