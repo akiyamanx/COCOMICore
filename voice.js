@@ -801,7 +801,7 @@ function executeExpenseVoiceCommand(command) {
 // 見積書作成 音声コマンド（テキスト入力方式）
 // ==========================================
 
-// 見積書用テキスト入力欄を表示（上部に表示）
+// 見積書用テキスト入力欄を表示（キーボードの上に固定）
 function showVoiceEstimateInput() {
   // 見積書画面に移動
   showScreen('estimate');
@@ -826,42 +826,56 @@ function showVoiceEstimateInput() {
     return;
   }
   
-  // 入力欄を作成
+  // 入力欄を作成（画面下部に固定）
   inputArea = document.createElement('div');
   inputArea.id = 'voice-estimate-input-area';
   inputArea.style.cssText = `
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
     background: linear-gradient(135deg, #001520, #002530);
-    border: 2px solid #00d4ff;
-    border-radius: 12px;
+    border-top: 2px solid #00d4ff;
     padding: 12px;
-    margin: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 -4px 15px rgba(0, 212, 255, 0.3);
+    transition: bottom 0.2s ease;
   `;
   inputArea.innerHTML = `
     <!-- タイトル行 -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <div style="font-size: 15px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="font-size: 14px; font-weight: bold; color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);">🎤 音声で見積書作成</div>
       <button onclick="hideVoiceEstimateInput()" style="background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: bold; cursor: pointer;">✕ 閉じる</button>
     </div>
     
-    <!-- 入力欄 -->
-    <textarea id="voiceEstimateText" placeholder="🎤 キーボードのマイクで入力&#10;例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="width: 100%; height: 70px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937; box-sizing: border-box; overflow-y: auto;"></textarea>
-    
-    <!-- ボタン -->
-    <button onclick="submitVoiceEstimate()" style="width: 100%; padding: 12px; margin-top: 10px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);">
-      ✨ AIに送信
-    </button>
+    <!-- 入力欄とボタンを横並び -->
+    <div style="display: flex; gap: 8px; align-items: flex-end;">
+      <textarea id="voiceEstimateText" placeholder="🎤 キーボードのマイクで入力" style="flex: 1; height: 50px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937; box-sizing: border-box; overflow-y: auto;"></textarea>
+      <button onclick="submitVoiceEstimate()" style="padding: 12px 16px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4); white-space: nowrap; height: 50px;">
+        ✨送信
+      </button>
+    </div>
     
     <!-- ステータス表示 -->
-    <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 8px; color: #00d4ff; display: none; text-align: center;"></div>
+    <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 6px; color: #00d4ff; display: none; text-align: center;"></div>
   `;
   
-  // 見積書画面の最初の子要素の前に挿入
-  if (estimateScreen.firstChild) {
-    estimateScreen.insertBefore(inputArea, estimateScreen.firstChild);
-  } else {
-    estimateScreen.appendChild(inputArea);
+  // bodyに追加（画面下部に固定されるように）
+  document.body.appendChild(inputArea);
+  
+  // キーボードの高さに合わせて位置調整
+  if (window.visualViewport) {
+    const adjustPosition = () => {
+      const viewport = window.visualViewport;
+      const keyboardHeight = window.innerHeight - viewport.height;
+      inputArea.style.bottom = keyboardHeight + 'px';
+    };
+    
+    window.visualViewport.addEventListener('resize', adjustPosition);
+    window.visualViewport.addEventListener('scroll', adjustPosition);
+    
+    // 閉じる時にイベントを削除するために保存
+    inputArea.dataset.hasViewportListener = 'true';
   }
   
   // フォーカス
