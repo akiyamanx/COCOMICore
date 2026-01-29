@@ -414,7 +414,10 @@ function renderEstimateWorks() {
 }
 
 function calculateEstimateTotal() {
-  const materialSubtotal = estimateMaterials.reduce((sum, m) => sum + (m.quantity || 0) * (m.price || 0), 0);
+  // 材料費小計（sellingPriceを使用）
+  const materialSubtotal = estimateMaterials.reduce((sum, m) => sum + (m.quantity || 0) * (m.sellingPrice || m.price || 0), 0);
+  
+  // 作業費小計
   const workSubtotal = estimateWorks.reduce((sum, w) => {
     if (workType === 'construction') {
       return sum + (w.value || 0);
@@ -429,8 +432,10 @@ function calculateEstimateTotal() {
   const tax = Math.floor(subtotal * taxRate / 100);
   const total = subtotal + tax;
   
+  // 表示を更新
   document.getElementById('estSubtotalDisplay').textContent = '¥' + subtotal.toLocaleString();
   document.getElementById('estTaxDisplay').textContent = '¥' + tax.toLocaleString();
+  document.getElementById('estTaxRateDisplay').textContent = taxRate;
   document.getElementById('estTotalDisplay').textContent = '¥' + total.toLocaleString();
 }
 
