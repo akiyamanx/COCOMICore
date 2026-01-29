@@ -73,7 +73,18 @@ function updateEstimateMaterial(id, field, value) {
     
     // 仕入単価または利益率が変更されたら売値を再計算
     if (field === 'costPrice' || field === 'profitRate') {
-      item.sellingPrice = Math.ceil((item.costPrice || 0) * (1 + (item.profitRate || 0) / 100));
+      if (item.costPrice > 0) {
+        // 仕入単価がある場合は、仕入単価から売値を計算
+        item.sellingPrice = Math.ceil((item.costPrice || 0) * (1 + (item.profitRate || 0) / 100));
+      } else if (item.sellingPrice > 0 && field === 'profitRate') {
+        // 仕入単価が0で売値がある場合は、売値から仕入単価を逆算
+        item.costPrice = Math.floor(item.sellingPrice / (1 + (item.profitRate || 0) / 100));
+      }
+    }
+    
+    // 売値単価が直接変更された場合
+    if (field === 'sellingPrice') {
+      // 売値が変更されたら、仕入単価と利益率から逆算はしない（そのまま）
     }
     
     renderEstimateMaterials();
