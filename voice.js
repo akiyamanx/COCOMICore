@@ -801,45 +801,41 @@ function executeExpenseVoiceCommand(command) {
 // 見積書作成 音声コマンド（テキスト入力方式）
 // ==========================================
 
-// 見積書用テキスト入力欄を表示（上部固定、下部スクロール）
+// 見積書用テキスト入力欄を表示（上部に表示）
 function showVoiceEstimateInput() {
   // 見積書画面に移動
   showScreen('estimate');
   
   const estimateScreen = document.getElementById('estimate-screen');
-  if (!estimateScreen) return;
+  if (!estimateScreen) {
+    console.error('estimate-screen not found');
+    return;
+  }
   
   // 既存の入力欄があれば表示
   let inputArea = document.getElementById('voice-estimate-input-area');
   if (inputArea) {
     inputArea.style.display = 'block';
     document.getElementById('voiceEstimateText').value = '';
-    document.getElementById('voiceEstimateStatus').style.display = 'none';
-    // スクロール領域を調整
-    const scrollArea = estimateScreen.querySelector('.screen-content');
-    if (scrollArea) {
-      scrollArea.style.marginTop = '140px';
-    }
+    const statusEl = document.getElementById('voiceEstimateStatus');
+    if (statusEl) statusEl.style.display = 'none';
     setTimeout(() => {
-      document.getElementById('voiceEstimateText').focus();
+      const textEl = document.getElementById('voiceEstimateText');
+      if (textEl) textEl.focus();
     }, 300);
     return;
   }
   
-  // 入力欄を作成（position: stickyで上部固定）
+  // 入力欄を作成
   inputArea = document.createElement('div');
   inputArea.id = 'voice-estimate-input-area';
   inputArea.style.cssText = `
-    position: sticky;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
     background: linear-gradient(135deg, #001520, #002530);
     border: 2px solid #00d4ff;
-    border-radius: 0 0 12px 12px;
+    border-radius: 12px;
     padding: 12px;
-    margin: 0 -16px 12px -16px;
+    margin: 16px;
+    margin-bottom: 16px;
     box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
   `;
   inputArea.innerHTML = `
@@ -850,7 +846,7 @@ function showVoiceEstimateInput() {
     </div>
     
     <!-- 入力欄 -->
-    <textarea id="voiceEstimateText" placeholder="🎤 キーボードのマイクで入力&#10;例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="width: 100%; height: 65px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937; box-sizing: border-box; overflow-y: auto;"></textarea>
+    <textarea id="voiceEstimateText" placeholder="🎤 キーボードのマイクで入力&#10;例：山田様、トイレ交換、便器5万円を2個、作業費2万円" style="width: 100%; height: 70px; padding: 10px; border: 2px solid rgba(0, 212, 255, 0.5); border-radius: 8px; background: rgba(255,255,255,0.95); font-size: 15px; resize: none; color: #1f2937; box-sizing: border-box; overflow-y: auto;"></textarea>
     
     <!-- ボタン -->
     <button onclick="submitVoiceEstimate()" style="width: 100%; padding: 12px; margin-top: 10px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);">
@@ -861,19 +857,17 @@ function showVoiceEstimateInput() {
     <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 8px; color: #00d4ff; display: none; text-align: center;"></div>
   `;
   
-  // 見積書画面の最初に挿入
-  const scrollArea = estimateScreen.querySelector('.screen-content');
-  if (scrollArea) {
-    scrollArea.insertBefore(inputArea, scrollArea.firstChild);
+  // 見積書画面の最初の子要素の前に挿入
+  if (estimateScreen.firstChild) {
+    estimateScreen.insertBefore(inputArea, estimateScreen.firstChild);
+  } else {
+    estimateScreen.appendChild(inputArea);
   }
   
   // フォーカス
   setTimeout(() => {
-    document.getElementById('voiceEstimateText').focus();
-    // 画面を一番上にスクロール
-    if (scrollArea) {
-      scrollArea.scrollTop = 0;
-    }
+    const textEl = document.getElementById('voiceEstimateText');
+    if (textEl) textEl.focus();
   }, 300);
 }
 
@@ -882,14 +876,6 @@ function hideVoiceEstimateInput() {
   const inputArea = document.getElementById('voice-estimate-input-area');
   if (inputArea) {
     inputArea.style.display = 'none';
-  }
-  // スクロール領域のmarginを戻す
-  const estimateScreen = document.getElementById('estimate-screen');
-  if (estimateScreen) {
-    const scrollArea = estimateScreen.querySelector('.screen-content');
-    if (scrollArea) {
-      scrollArea.style.marginTop = '0';
-    }
   }
   // 古いモーダルも閉じる
   const oldModal = document.getElementById('voice-estimate-modal');
@@ -921,6 +907,12 @@ function submitVoiceEstimate() {
 
 // 見積書を音声で作成開始
 function startVoiceEstimate() {
+  // 古いモーダルがあれば完全に削除
+  const oldModal = document.getElementById('voice-estimate-modal');
+  if (oldModal) {
+    oldModal.remove();
+  }
+  
   const settings = JSON.parse(localStorage.getItem('reform_app_settings') || '{}');
   
   if (!settings.geminiApiKey) {
