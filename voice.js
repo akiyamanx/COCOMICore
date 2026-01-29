@@ -1057,10 +1057,10 @@ function applyVoiceEstimate(data) {
       }
     }
     
-    // 品目がある場合
+    // 品目がある場合（既存の材料に追加する）
     if (data.items && data.items.length > 0) {
-      // 既存の品目をクリア
-      estimateMaterials = [];
+      // 既存の品目をクリアしない！追加する
+      // estimateMaterials = []; ← これをコメントアウト
       
       data.items.forEach(item => {
         if (item.name && item.price) {
@@ -1094,8 +1094,8 @@ function applyVoiceEstimate(data) {
       renderEstimateMaterials();
       calculateEstimateTotal();
     } else if (data.amount) {
-      // 品目なしで金額のみの場合
-      estimateMaterials = [{
+      // 品目なしで金額のみの場合（追加する）
+      estimateMaterials.push({
         id: Date.now(),
         name: data.title || '工事一式',
         quantity: 1,
@@ -1104,17 +1104,18 @@ function applyVoiceEstimate(data) {
         profitRate: 0,
         sellingPrice: data.amount,
         subtotal: data.amount
-      }];
+      });
       renderEstimateMaterials();
       calculateEstimateTotal();
     }
     
     // 成功メッセージ
-    let msg = '✅ 音声から見積書を作成しました！\n\n';
+    const addedCount = data.items ? data.items.length : 1;
+    let msg = `✅ ${addedCount}件の材料を追加しました！\n\n`;
     if (data.customerName) msg += `顧客名: ${data.customerName}\n`;
     if (data.title) msg += `件名: ${data.title}\n`;
-    if (data.items && data.items.length > 0) msg += `内訳: ${data.items.length}件\n`;
-    if (data.amount) msg += `合計金額: ¥${data.amount.toLocaleString()}\n`;
+    if (data.items && data.items.length > 0) msg += `追加した内訳: ${data.items.length}件\n`;
+    if (data.amount) msg += `追加分の合計: ¥${data.amount.toLocaleString()}\n`;
     msg += '\n内容を確認・修正してください。';
     
     alert(msg);

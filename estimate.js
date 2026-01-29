@@ -90,18 +90,21 @@ function renderEstimateMaterials() {
       <div class="estimate-item">
         <div class="estimate-item-header">
           <span style="font-size: 12px; color: #6b7280;">材料 #${index + 1}</span>
-          <button class="receipt-item-delete" onclick="removeEstimateMaterial(${item.id})">削除</button>
+          <div style="display: flex; gap: 6px;">
+            <button onclick="showMaterialVoiceEdit(${item.id})" style="padding: 4px 8px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;" title="音声で修正">🎤修正</button>
+            <button class="receipt-item-delete" onclick="removeEstimateMaterial(${item.id})">削除</button>
+          </div>
         </div>
         <div class="estimate-item-row" style="grid-template-columns: 2fr 1fr;">
           <div class="suggest-container">
-            <input type="text" placeholder="品名" value="${escapeHtml(item.name)}"
+            <input type="text" placeholder="品名" value="${escapeHtml(item.name)}" id="est-name-${item.id}"
               oninput="showEstimateSuggestions(this, ${item.id})"
               onfocus="showEstimateSuggestions(this, ${item.id})"
               onblur="setTimeout(() => hideEstimateSuggestions(${item.id}), 200)"
               onchange="updateEstimateMaterial(${item.id}, 'name', this.value)">
             <div class="suggest-dropdown" id="est-suggest-${item.id}"></div>
           </div>
-          <input type="number" placeholder="数量" value="${item.quantity}" min="1"
+          <input type="number" placeholder="数量" value="${item.quantity}" min="1" id="est-qty-${item.id}"
             onchange="updateEstimateMaterial(${item.id}, 'quantity', parseInt(this.value) || 1)">
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-top: 8px; align-items: center;">
@@ -120,13 +123,20 @@ function renderEstimateMaterials() {
           </div>
           <div>
             <div style="font-size: 10px; color: #6b7280;">売値単価</div>
-            <div style="padding: 8px; background: #eff6ff; border-radius: 6px; font-size: 14px; font-weight: bold; color: #3b82f6;">
-              ¥${(item.sellingPrice || 0).toLocaleString()}
-            </div>
+            <input type="number" placeholder="売値" value="${item.sellingPrice || ''}" id="est-price-${item.id}" style="padding: 8px; border: 1px solid #3b82f6; border-radius: 6px; font-size: 14px; width: 100%; background: #eff6ff; color: #3b82f6; font-weight: bold;"
+              onchange="updateEstimateMaterial(${item.id}, 'sellingPrice', parseInt(this.value) || 0)">
           </div>
           <div>
             <div style="font-size: 10px; color: #6b7280;">金額</div>
             <div class="estimate-item-amount" style="padding: 8px;">¥${sellingAmount.toLocaleString()}</div>
+          </div>
+        </div>
+        <!-- 音声修正用入力欄（非表示） -->
+        <div id="voice-edit-${item.id}" style="display: none; margin-top: 8px; padding: 8px; background: linear-gradient(135deg, #001520, #002530); border: 1px solid #00d4ff; border-radius: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="voice-edit-input-${item.id}" placeholder="🎤 例：塩ビ管、3本、500円" style="flex: 1; padding: 8px; border: 1px solid #00d4ff; border-radius: 6px; font-size: 14px;">
+            <button onclick="applyMaterialVoiceEdit(${item.id})" style="padding: 8px 12px; background: linear-gradient(135deg, #00d4ff, #0099cc); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;">適用</button>
+            <button onclick="hideMaterialVoiceEdit(${item.id})" style="padding: 8px; background: rgba(239, 68, 68, 0.3); color: #ef4444; border: 1px solid #ef4444; border-radius: 6px; font-size: 12px; cursor: pointer;">✕</button>
           </div>
         </div>
       </div>
@@ -141,6 +151,107 @@ function renderEstimateMaterials() {
   document.getElementById('estMaterialSubtotal').textContent = '¥' + sellingSubtotal.toLocaleString();
   document.getElementById('estMaterialCost').textContent = '¥' + costSubtotal.toLocaleString();
   document.getElementById('estMaterialProfit').textContent = '¥' + profitSubtotal.toLocaleString();
+}
+
+// 材料音声修正欄を表示
+function showMaterialVoiceEdit(itemId) {
+  const editArea = document.getElementById(`voice-edit-${itemId}`);
+  if (editArea) {
+    editArea.style.display = 'block';
+    const input = document.getElementById(`voice-edit-input-${itemId}`);
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+// 材料音声修正欄を非表示
+function hideMaterialVoiceEdit(itemId) {
+  const editArea = document.getElementById(`voice-edit-${itemId}`);
+  if (editArea) {
+    editArea.style.display = 'none';
+  }
+}
+
+// 材料音声修正を適用（AI解析）
+async function applyMaterialVoiceEdit(itemId) {
+  const input = document.getElementById(`voice-edit-input-${itemId}`);
+  if (!input || !input.value.trim()) {
+    alert('修正内容を入力してください');
+    return;
+  }
+  
+  const settings = JSON.parse(localStorage.getItem('reform_app_settings') || '{}');
+  if (!settings.geminiApiKey) {
+    alert('この機能にはGemini APIキーが必要です。\n設定画面からAPIキーを入力してください。');
+    return;
+  }
+  
+  const transcript = input.value.trim();
+  input.disabled = true;
+  input.placeholder = '解析中...';
+  
+  try {
+    const prompt = `以下の音声から材料情報を抽出してください。
+
+音声: "${transcript}"
+
+以下のJSON形式で返してください（説明不要）:
+{
+  "name": "品名",
+  "quantity": 数量（数値）,
+  "price": 単価（数値）
+}
+
+【例】
+「塩ビ管、3本、500円」→ {"name": "塩ビ管", "quantity": 3, "price": 500}
+「便器1個3万円」→ {"name": "便器", "quantity": 1, "price": 30000}
+「エルボ5個200円」→ {"name": "エルボ", "quantity": 5, "price": 200}
+
+言及されていない項目はnullにしてください。`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${settings.geminiApiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
+      
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        
+        // 該当の材料を更新
+        const item = estimateMaterials.find(m => m.id === itemId);
+        if (item) {
+          if (result.name) item.name = result.name;
+          if (result.quantity) item.quantity = result.quantity;
+          if (result.price) item.sellingPrice = result.price;
+          item.subtotal = (item.quantity || 1) * (item.sellingPrice || 0);
+          
+          renderEstimateMaterials();
+          calculateEstimateTotal();
+          
+          alert(`✅ 更新しました！\n品名: ${result.name || '変更なし'}\n数量: ${result.quantity || '変更なし'}\n単価: ${result.price ? '¥' + result.price.toLocaleString() : '変更なし'}`);
+        }
+      }
+    } else {
+      throw new Error('API error');
+    }
+  } catch (e) {
+    console.error('Material voice edit error:', e);
+    alert('解析に失敗しました');
+  } finally {
+    input.disabled = false;
+    input.placeholder = '🎤 例：塩ビ管、3本、500円';
+    hideMaterialVoiceEdit(itemId);
+  }
 }
 
 // 利益率一括適用
