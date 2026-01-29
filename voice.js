@@ -973,6 +973,12 @@ async function processVoiceEstimate(transcript, apiKey) {
 - 「3つ」「3か所」→ quantity: 3
 - 「便器5万円×2」「便器5万円が2つ」→ quantity: 2
 
+【例5】複数の材料を列挙する場合（重要！）
+音声「鈴木様、トイレ配管工事、便器3万円1個、20A塩ビ管500円3本、20Aエルボ200円3個、作業費1万円」
+→ {"customerName": "鈴木様", "title": "トイレ配管工事", "amount": 42100, "items": [{"name": "便器", "quantity": 1, "price": 30000}, {"name": "20A塩ビ管", "quantity": 3, "price": 500}, {"name": "20Aエルボ", "quantity": 3, "price": 200}, {"name": "作業費", "quantity": 1, "price": 10000}]}
+
+【重要】材料が複数ある場合は、必ずそれぞれ別々のitemsとして追加してください。1つのitemにまとめないでください。
+
 抽出できない項目はnullにしてください。`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
@@ -1107,7 +1113,8 @@ function applyVoiceEstimate(data) {
     let msg = '✅ 音声から見積書を作成しました！\n\n';
     if (data.customerName) msg += `顧客名: ${data.customerName}\n`;
     if (data.title) msg += `件名: ${data.title}\n`;
-    if (data.amount) msg += `金額: ¥${data.amount.toLocaleString()}\n`;
+    if (data.items && data.items.length > 0) msg += `内訳: ${data.items.length}件\n`;
+    if (data.amount) msg += `合計金額: ¥${data.amount.toLocaleString()}\n`;
     msg += '\n内容を確認・修正してください。';
     
     alert(msg);

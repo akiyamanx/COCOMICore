@@ -3,7 +3,7 @@
 // Version: 1.0.0
 // ==========================================
 
-const CACHE_NAME = 'reform-app-v1.5.1';
+const CACHE_NAME = 'reform-app-v1.5.3';
 const OFFLINE_URL = 'index.html';
 
 // キャッシュするファイル（相対パス）
