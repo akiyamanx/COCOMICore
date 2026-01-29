@@ -826,7 +826,7 @@ function showVoiceEstimateInput() {
     return;
   }
   
-  // 入力欄を作成（画面下部に固定）
+  // 入力欄を作成（画面下部に固定、シンプルにbottom:0のみ）
   inputArea = document.createElement('div');
   inputArea.id = 'voice-estimate-input-area';
   inputArea.style.cssText = `
@@ -839,7 +839,6 @@ function showVoiceEstimateInput() {
     border-top: 2px solid #00d4ff;
     padding: 12px;
     box-shadow: 0 -4px 15px rgba(0, 212, 255, 0.3);
-    transition: bottom 0.2s ease;
   `;
   inputArea.innerHTML = `
     <!-- タイトル行 -->
@@ -860,23 +859,8 @@ function showVoiceEstimateInput() {
     <div id="voiceEstimateStatus" style="font-size: 12px; margin-top: 6px; color: #00d4ff; display: none; text-align: center;"></div>
   `;
   
-  // bodyに追加（画面下部に固定されるように）
+  // bodyに追加
   document.body.appendChild(inputArea);
-  
-  // キーボードの高さに合わせて位置調整
-  if (window.visualViewport) {
-    const adjustPosition = () => {
-      const viewport = window.visualViewport;
-      const keyboardHeight = window.innerHeight - viewport.height;
-      inputArea.style.bottom = keyboardHeight + 'px';
-    };
-    
-    window.visualViewport.addEventListener('resize', adjustPosition);
-    window.visualViewport.addEventListener('scroll', adjustPosition);
-    
-    // 閉じる時にイベントを削除するために保存
-    inputArea.dataset.hasViewportListener = 'true';
-  }
   
   // フォーカス
   setTimeout(() => {
